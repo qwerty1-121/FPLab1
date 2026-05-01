@@ -1,0 +1,20 @@
+# Qt Creator user settings
+*.pro.user
+*.pro.user.*
+
+# Build directories
+build/
+build-*/
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+
+# Temporary files
+*.tmp
+*.log
+
+# VS Code settings
+.vscode/
