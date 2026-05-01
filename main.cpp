@@ -1,6 +1,7 @@
 #include <QTextStream>
 #include <QString>
 #include <QDir>
+#include <QDirIterator>
 
 int main()
 {
@@ -45,6 +46,26 @@ int main()
     out << "Mode: " << mode << Qt::endl;
     out << "Folder path: " << directory.absolutePath() << Qt::endl;
     out << "Password was entered" << Qt::endl;
+
+    out << Qt::endl;
+    out << "Files found:" << Qt::endl;
+
+    QDirIterator iterator(
+        directory.absolutePath(),
+        QDir::Files,
+        QDirIterator::Subdirectories
+    );
+
+    int fileCount = 0;
+
+    while (iterator.hasNext()) {
+        const QString filePath = iterator.next();
+        out << filePath << Qt::endl;
+        ++fileCount;
+    }
+
+    out << Qt::endl;
+    out << "Total files: " << fileCount << Qt::endl;
 
     return 0;
 }
