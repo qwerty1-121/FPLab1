@@ -1,71 +1,32 @@
 #include <QTextStream>
-#include <QString>
-#include <QDir>
-#include <QDirIterator>
+
+#include "ConsoleInput.h"
+#include "FileProcessor.h"
 
 int main()
 {
     QTextStream out(stdout);
-    QTextStream in(stdin);
 
     out << "Lab_1 started" << Qt::endl;
 
-    out << "Enter mode encrypt/decrypt:" << Qt::endl;
-    const QString mode = in.readLine();
+    ConsoleInput inputReader;
+    const InputData userInput = inputReader.read();
 
-    out << "Enter folder path:" << Qt::endl;
-    const QString folderPath = in.readLine();
-
-    out << "Enter password:" << Qt::endl;
-    const QString password = in.readLine();
-
-    if (mode != "encrypt" && mode != "decrypt") {
-        out << "Error: mode must be encrypt or decrypt." << Qt::endl;
-        return 1;
-    }
-
-    if (folderPath.isEmpty()) {
-        out << "Error: folder path must not be empty." << Qt::endl;
-        return 1;
-    }
-
-    if (password.isEmpty()) {
-        out << "Error: password must not be empty." << Qt::endl;
-        return 1;
-    }
-
-    QDir directory(folderPath);
-
-    if (!directory.exists()) {
-        out << "Error: folder does not exist." << Qt::endl;
+    if (!inputReader.validate(userInput, out)) {
         return 1;
     }
 
     out << Qt::endl;
     out << "Input data:" << Qt::endl;
-    out << "Mode: " << mode << Qt::endl;
-    out << "Folder path: " << directory.absolutePath() << Qt::endl;
+    out << "Mode: " << userInput.mode << Qt::endl;
+    out << "Folder path: " << userInput.folderPath << Qt::endl;
     out << "Password was entered" << Qt::endl;
 
-    out << Qt::endl;
-    out << "Files found:" << Qt::endl;
+    FileProcessor folderProcessor;
 
-    QDirIterator iterator(
-        directory.absolutePath(),
-        QDir::Files,
-        QDirIterator::Subdirectories
-    );
-
-    int fileCount = 0;
-
-    while (iterator.hasNext()) {
-        const QString filePath = iterator.next();
-        out << filePath << Qt::endl;
-        ++fileCount;
+    if (!folderProcessor.printFiles(userInput.folderPath, out)) {
+        return 1;
     }
-
-    out << Qt::endl;
-    out << "Total files: " << fileCount << Qt::endl;
 
     return 0;
 }

@@ -7,4 +7,10 @@ CONFIG += c++17
 TARGET = Lab_1
 
 SOURCES += \
-    main.cpp
+    main.cpp \
+    ConsoleInput.cpp \
+    FileProcessor.cpp
+
+HEADERS += \
+    ConsoleInput.h \
+    FileProcessor.h
