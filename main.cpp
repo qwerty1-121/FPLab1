@@ -24,7 +24,10 @@ int main()
 
     FileProcessor folderProcessor;
 
-    if (!folderProcessor.printFiles(userInput.folderPath, out)) {
+    if (!folderProcessor.processFiles(userInput.folderPath,
+                                      userInput.mode,
+                                      userInput.password,
+                                      out)) {
         return 1;
     }
 

@@ -9,8 +9,10 @@ TARGET = Lab_1
 SOURCES += \
     main.cpp \
     ConsoleInput.cpp \
-    FileProcessor.cpp
+    FileProcessor.cpp \
+    CryptoManager.cpp
 
 HEADERS += \
     ConsoleInput.h \
-    FileProcessor.h
+    FileProcessor.h \
+    CryptoManager.h

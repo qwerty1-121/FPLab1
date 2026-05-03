@@ -7,7 +7,10 @@
 class FileProcessor
 {
 public:
-    bool printFiles(const QString& folderPath, QTextStream& out) const;
+    bool processFiles(const QString& folderPath,
+                      const QString& mode,
+                      const QString& password,
+                      QTextStream& out) const;
 };
 
 #endif // FILEPROCESSOR_H
