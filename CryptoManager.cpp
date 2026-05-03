@@ -1,5 +1,8 @@
 #include "CryptoManager.h"
 
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
 CryptoManager::CryptoManager()
 {
 }
@@ -15,6 +18,9 @@ bool CryptoManager::encryptFile(const QString& filePath,
                                 QTextStream& out) const
 {
     Q_UNUSED(password);
+
+    const EVP_CIPHER* cipher = EVP_aes_256_cbc();
+    Q_UNUSED(cipher);
 
     out << "Encrypt file: " << filePath << Qt::endl;
 
