@@ -11,6 +11,9 @@ public:
                       const QString& mode,
                       const QString& password,
                       QTextStream& out) const;
+
+private:
+    bool shouldProcessFile(const QString& filePath, const QString& mode) const;
 };
 
 #endif // FILEPROCESSOR_H
