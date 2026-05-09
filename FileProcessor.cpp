@@ -40,8 +40,11 @@ bool FileProcessor::processFiles(const QString& folderPath,
 
         if (mode == "encrypt") {
             result = cryptoManager.encryptFile(filePath, password, out);
-        } else {
+        } else if (mode == "decrypt") {
             result = cryptoManager.decryptFile(filePath, password, out);
+        } else {
+            out << "Error: unknown processing mode: " << mode << Qt::endl;
+            return false;
         }
 
         if (!result) {
@@ -60,14 +63,12 @@ bool FileProcessor::processFiles(const QString& folderPath,
 
 bool FileProcessor::shouldProcessFile(const QString& filePath, const QString& mode) const
 {
-    const bool isEncryptedFile = filePath.endsWith(".enc");
-
-    if (mode == "encrypt") {
-        return !isEncryptedFile;
+    if (filePath.endsWith(".tmp")) {
+        return false;
     }
 
-    if (mode == "decrypt") {
-        return isEncryptedFile;
+    if (mode == "encrypt" || mode == "decrypt") {
+        return true;
     }
 
     return false;
