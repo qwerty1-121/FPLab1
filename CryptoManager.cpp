@@ -32,10 +32,10 @@ bool CryptoManager::encryptFile(const QString& filePath,
                                 const QString& password,
                                 QTextStream& out) const
 {
-    const QString encryptedFilePath = filePath + ".enc";
+    const QString temporaryFilePath = filePath + ".tmp";
 
-    if (QFile::exists(encryptedFilePath)) {
-        out << "Error: encrypted file already exists: " << encryptedFilePath << Qt::endl;
+    if (QFile::exists(temporaryFilePath)) {
+        out << "Error: temporary file already exists: " << temporaryFilePath << Qt::endl;
         return false;
     }
 
@@ -46,10 +46,10 @@ bool CryptoManager::encryptFile(const QString& filePath,
         return false;
     }
 
-    QFile outputFile(encryptedFilePath);
+    QFile outputFile(temporaryFilePath);
 
     if (!outputFile.open(QIODevice::WriteOnly)) {
-        out << "Error: cannot create encrypted file: " << encryptedFilePath << Qt::endl;
+        out << "Error: cannot create temporary encrypted file: " << temporaryFilePath << Qt::endl;
         inputFile.close();
         return false;
     }
@@ -175,16 +175,22 @@ bool CryptoManager::encryptFile(const QString& filePath,
     outputFile.close();
 
     if (!success) {
-        QFile::remove(encryptedFilePath);
+        QFile::remove(temporaryFilePath);
         return false;
     }
 
     if (!QFile::remove(filePath)) {
+        QFile::remove(temporaryFilePath);
         out << "Error: cannot remove original file after encryption: " << filePath << Qt::endl;
         return false;
     }
 
-    out << "Encrypted file: " << filePath << " -> " << encryptedFilePath << Qt::endl;
+    if (!QFile::rename(temporaryFilePath, filePath)) {
+        out << "Error: cannot replace original file after encryption: " << filePath << Qt::endl;
+        return false;
+    }
+
+    out << "Encrypted file: " << filePath << Qt::endl;
 
     return true;
 }
@@ -193,15 +199,10 @@ bool CryptoManager::decryptFile(const QString& filePath,
                                 const QString& password,
                                 QTextStream& out) const
 {
-    if (!filePath.endsWith(".enc")) {
-        out << "Error: file is not encrypted: " << filePath << Qt::endl;
-        return false;
-    }
+    const QString temporaryFilePath = filePath + ".tmp";
 
-    const QString decryptedFilePath = filePath.left(filePath.length() - 4);
-
-    if (QFile::exists(decryptedFilePath)) {
-        out << "Error: decrypted file already exists: " << decryptedFilePath << Qt::endl;
+    if (QFile::exists(temporaryFilePath)) {
+        out << "Error: temporary file already exists: " << temporaryFilePath << Qt::endl;
         return false;
     }
 
@@ -212,10 +213,10 @@ bool CryptoManager::decryptFile(const QString& filePath,
         return false;
     }
 
-    QFile outputFile(decryptedFilePath);
+    QFile outputFile(temporaryFilePath);
 
     if (!outputFile.open(QIODevice::WriteOnly)) {
-        out << "Error: cannot create decrypted file: " << decryptedFilePath << Qt::endl;
+        out << "Error: cannot create temporary decrypted file: " << temporaryFilePath << Qt::endl;
         inputFile.close();
         return false;
     }
@@ -328,16 +329,22 @@ bool CryptoManager::decryptFile(const QString& filePath,
     outputFile.close();
 
     if (!success) {
-        QFile::remove(decryptedFilePath);
+        QFile::remove(temporaryFilePath);
         return false;
     }
 
     if (!QFile::remove(filePath)) {
+        QFile::remove(temporaryFilePath);
         out << "Error: cannot remove encrypted file after decryption: " << filePath << Qt::endl;
         return false;
     }
 
-    out << "Decrypted file: " << filePath << " -> " << decryptedFilePath << Qt::endl;
+    if (!QFile::rename(temporaryFilePath, filePath)) {
+        out << "Error: cannot replace encrypted file after decryption: " << filePath << Qt::endl;
+        return false;
+    }
+
+    out << "Decrypted file: " << filePath << Qt::endl;
 
     return true;
 }
