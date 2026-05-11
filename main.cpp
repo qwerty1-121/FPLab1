@@ -9,9 +9,11 @@ int main()
 
     out << "Lab_1 started" << Qt::endl;
 
+    // Считываем входные данные пользователя: режим, путь к папке и пароль.
     ConsoleInput inputReader;
     const InputData userInput = inputReader.read();
 
+    // Проверяем корректность введённых данных перед обработкой файлов.
     if (!inputReader.validate(userInput, out)) {
         return 1;
     }
@@ -22,6 +24,7 @@ int main()
     out << "Folder path: " << userInput.folderPath << Qt::endl;
     out << "Password was entered" << Qt::endl;
 
+    // Запускаем рекурсивную обработку файлов в выбранной папке.
     FileProcessor folderProcessor;
 
     if (!folderProcessor.processFiles(userInput.folderPath,

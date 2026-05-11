@@ -9,8 +9,11 @@
 
 namespace
 {
+    // Служебная сигнатура, по которой программа определяет,
+    // что файл был зашифрован именно этим приложением.
     const QByteArray FILE_MAGIC = "FPLAB1";
 
+    // Основные параметры криптографической обработки.
     const int SALT_SIZE = 16;
     const int IV_SIZE = 16;
     const int KEY_SIZE = 32;
@@ -24,6 +27,8 @@ CryptoManager::CryptoManager()
 
 CryptoManager& CryptoManager::instance()
 {
+    // Локальная static-переменная создаётся один раз
+    // и обеспечивает реализацию Singleton без ручного new/delete.
     static CryptoManager manager;
     return manager;
 }
@@ -32,6 +37,8 @@ bool CryptoManager::encryptFile(const QString& filePath,
                                 const QString& password,
                                 QTextStream& out) const
 {
+    // Результат шифрования сначала записывается во временный файл.
+    // Это позволяет не менять имя исходного файла и не повредить его при ошибке.
     const QString temporaryFilePath = filePath + ".tmp";
 
     if (QFile::exists(temporaryFilePath)) {
@@ -54,6 +61,8 @@ bool CryptoManager::encryptFile(const QString& filePath,
         return false;
     }
 
+    // Соль и IV генерируются случайно для каждого файла.
+    // Ключ будет получен из пароля и соли через PBKDF2.
     QByteArray salt(SALT_SIZE, 0);
     QByteArray iv(IV_SIZE, 0);
     QByteArray key(KEY_SIZE, 0);
@@ -76,6 +85,8 @@ bool CryptoManager::encryptFile(const QString& filePath,
 
     const QByteArray passwordBytes = password.toUtf8();
 
+    // Получение AES-ключа из пароля.
+    // PBKDF2-HMAC-SHA256 делает подбор пароля более трудоёмким.
     if (PKCS5_PBKDF2_HMAC(passwordBytes.constData(),
                           passwordBytes.size(),
                           reinterpret_cast<const unsigned char*>(salt.constData()),
@@ -91,6 +102,7 @@ bool CryptoManager::encryptFile(const QString& filePath,
         return false;
     }
 
+    // Контекст OpenSSL хранит состояние операции AES-256-CBC.
     EVP_CIPHER_CTX* context = EVP_CIPHER_CTX_new();
 
     if (context == nullptr) {
@@ -103,6 +115,7 @@ bool CryptoManager::encryptFile(const QString& filePath,
 
     bool success = true;
 
+    // Настройка контекста на шифрование AES-256-CBC с полученным ключом и IV.
     if (EVP_EncryptInit_ex(context,
                            EVP_aes_256_cbc(),
                            nullptr,
@@ -112,6 +125,8 @@ bool CryptoManager::encryptFile(const QString& filePath,
         success = false;
     }
 
+    // В начало файла записываются служебные данные,
+    // необходимые для последующего дешифрования.
     if (success && outputFile.write(FILE_MAGIC) != FILE_MAGIC.size()) {
         out << "Error: cannot write file magic." << Qt::endl;
         success = false;
@@ -129,6 +144,7 @@ bool CryptoManager::encryptFile(const QString& filePath,
 
     const int blockSize = EVP_CIPHER_block_size(EVP_aes_256_cbc());
 
+    // Файл читается частями, чтобы не загружать его полностью в память.
     while (success && !inputFile.atEnd()) {
         const QByteArray inputBuffer = inputFile.read(BUFFER_SIZE);
 
@@ -152,6 +168,7 @@ bool CryptoManager::encryptFile(const QString& filePath,
         }
     }
 
+    // Финальный этап шифрования добавляет padding и завершает операцию.
     if (success) {
         QByteArray finalBuffer(blockSize, 0);
         int finalLength = 0;
@@ -169,6 +186,7 @@ bool CryptoManager::encryptFile(const QString& filePath,
         }
     }
 
+    // Освобождение ресурсов OpenSSL и закрытие файлов перед заменой.
     EVP_CIPHER_CTX_free(context);
 
     inputFile.close();
@@ -179,6 +197,8 @@ bool CryptoManager::encryptFile(const QString& filePath,
         return false;
     }
 
+    // Безопасная замена: временный файл становится исходным файлом.
+    // Имя и расширение файла при этом не меняются.
     if (!QFile::remove(filePath)) {
         QFile::remove(temporaryFilePath);
         out << "Error: cannot remove original file after encryption: " << filePath << Qt::endl;
@@ -199,6 +219,7 @@ bool CryptoManager::decryptFile(const QString& filePath,
                                 const QString& password,
                                 QTextStream& out) const
 {
+    // Расшифрованный результат сначала записывается во временный файл.
     const QString temporaryFilePath = filePath + ".tmp";
 
     if (QFile::exists(temporaryFilePath)) {
@@ -221,6 +242,8 @@ bool CryptoManager::decryptFile(const QString& filePath,
         return false;
     }
 
+    // Проверка служебной сигнатуры файла.
+    // Если сигнатуры нет, файл не считается зашифрованным этим приложением.
     const QByteArray fileMagic = inputFile.read(FILE_MAGIC.size());
 
     if (fileMagic != FILE_MAGIC) {
@@ -231,6 +254,7 @@ bool CryptoManager::decryptFile(const QString& filePath,
         return false;
     }
 
+    // Чтение salt и IV, записанных при шифровании.
     const QByteArray salt = inputFile.read(SALT_SIZE);
     const QByteArray iv = inputFile.read(IV_SIZE);
 
@@ -245,6 +269,8 @@ bool CryptoManager::decryptFile(const QString& filePath,
     QByteArray key(KEY_SIZE, 0);
     const QByteArray passwordBytes = password.toUtf8();
 
+    // Повторное получение ключа из пароля и salt.
+    // При правильном пароле получится тот же ключ, что и при шифровании.
     if (PKCS5_PBKDF2_HMAC(passwordBytes.constData(),
                           passwordBytes.size(),
                           reinterpret_cast<const unsigned char*>(salt.constData()),
@@ -272,6 +298,7 @@ bool CryptoManager::decryptFile(const QString& filePath,
 
     bool success = true;
 
+    // Настройка контекста OpenSSL на дешифрование AES-256-CBC.
     if (EVP_DecryptInit_ex(context,
                            EVP_aes_256_cbc(),
                            nullptr,
@@ -283,6 +310,7 @@ bool CryptoManager::decryptFile(const QString& filePath,
 
     const int blockSize = EVP_CIPHER_block_size(EVP_aes_256_cbc());
 
+    // Чтение и дешифрование содержимого файла частями.
     while (success && !inputFile.atEnd()) {
         const QByteArray encryptedBuffer = inputFile.read(BUFFER_SIZE);
 
@@ -306,6 +334,8 @@ bool CryptoManager::decryptFile(const QString& filePath,
         }
     }
 
+    // Финальный этап дешифрования проверяет и удаляет padding.
+    // Ошибка здесь часто означает неверный пароль или повреждённый файл.
     if (success) {
         QByteArray finalBuffer(blockSize, 0);
         int finalLength = 0;
@@ -333,6 +363,8 @@ bool CryptoManager::decryptFile(const QString& filePath,
         return false;
     }
 
+    // После успешного дешифрования временный файл заменяет исходный,
+    // поэтому имя файла остаётся прежним.
     if (!QFile::remove(filePath)) {
         QFile::remove(temporaryFilePath);
         out << "Error: cannot remove encrypted file after decryption: " << filePath << Qt::endl;
